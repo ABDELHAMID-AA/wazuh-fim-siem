@@ -1,0 +1,6 @@
+#!/bin/sh
+# [Recommendation] Wrapper - not part of the original project documentation.
+# Wazuh looks for an executable named exactly like the <name> in ossec.conf
+# ("custom-telegram"). This wrapper forwards Wazuh's arguments to the Python script.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+exec python3 "${SCRIPT_DIR}/custom-telegram.py" "$@"

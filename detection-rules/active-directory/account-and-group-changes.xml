@@ -1,0 +1,28 @@
+<!--
+  Active Directory account / group change rules
+  Origin    : [Documented] rule XML recorded in the project documentation (whitespace normalized only).
+  Event src : Windows Security event log on the domain controller
+              (4720 user created; 4728 / 4732 / 4756 security-group member added)
+  Requires  : "Account management" auditing enabled via GPO (see configs/windows/ad-audit-policy.md)
+-->
+<group name="local,windows,active_directory,">
+
+  <!-- 110152 - AD user created (Event ID 4720). Level 10. [Documented, Validated] -->
+  <rule id="110152" level="10">
+    <if_group>windows</if_group>
+    <field name="win.system.eventID">^4720$</field>
+    <description>User created</description>
+  </rule>
+
+  <!-- 102020 - Member added to a security group (4728 / 4732 / 4756). Level 12. [Documented, Validated]
+       Note: the event IDs match membership additions to ANY security-enabled group of the
+       respective scope, not only privileged ones; the description is therefore broader than
+       the logic. Consider filtering on win.eventdata.targetUserName (group name) for
+       privileged groups in your own environment. -->
+  <rule id="102020" level="12">
+    <if_group>windows</if_group>
+    <field name="win.system.eventID">^4728$|^4732$|^4756$</field>
+    <description>AD: User added to privileged group</description>
+  </rule>
+
+</group>

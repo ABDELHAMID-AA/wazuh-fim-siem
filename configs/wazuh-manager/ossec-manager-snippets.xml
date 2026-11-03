@@ -1,0 +1,41 @@
+<!--
+  Wazuh Manager - configuration excerpts
+  Target file : /var/ossec/etc/ossec.conf  (on the Wazuh server)
+  Origin      : [Documented] - blocks recorded in the project documentation.
+  Usage       : Merge these blocks INTO the existing <ossec_config> element.
+                Do not replace the whole file; the stock ossec.conf contains
+                many other required sections.
+-->
+<ossec_config>
+
+  <!-- [Documented] Local log collection on the manager host itself -->
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/var/log/auth.log</location>
+  </localfile>
+
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/var/log/syslog</location>
+  </localfile>
+
+  <!--
+    [Documented] Telegram integration (alerts of level 8 and above, JSON format).
+    Requires /var/ossec/integrations/custom-telegram to exist and be executable
+    by the wazuh user. See integrations/telegram/README.md.
+  -->
+  <integration>
+    <name>custom-telegram</name>
+    <level>8</level>
+    <alert_format>json</alert_format>
+  </integration>
+
+</ossec_config>
+
+<!--
+  Ports used by the manager (stock Wazuh behavior, as documented):
+    1514/tcp  agent event channel (encrypted)
+    1515/tcp  agent enrollment
+    9200/tcp  manager -> indexer
+    443/tcp   dashboard (HTTPS)
+-->

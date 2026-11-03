@@ -1,0 +1,66 @@
+<!--
+  Wazuh agent (Linux web server) - configuration excerpts
+  Target file : /var/ossec/etc/ossec.conf  (on the Linux agent)
+  Origin      : [Documented] localfile blocks (agent config excerpt) and the
+                syscheck block (FIM section of the project documentation).
+  Usage       : Merge into the existing <ossec_config>. After editing:
+                  sudo systemctl restart wazuh-agent
+-->
+<ossec_config>
+
+  <!-- ===== Log collection [Documented] ===== -->
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/var/ossec/logs/active-responses.log</location>
+  </localfile>
+
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/var/log/auth.log</location>
+  </localfile>
+
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/var/log/syslog</location>
+  </localfile>
+
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/var/log/dpkg.log</location>
+  </localfile>
+
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/var/log/kern.log</location>
+  </localfile>
+
+  <localfile>
+    <log_format>apache</log_format>
+    <location>/var/log/apache2/access.log</location>
+  </localfile>
+
+  <localfile>
+    <log_format>apache</log_format>
+    <location>/var/log/apache2/error.log</location>
+  </localfile>
+
+  <!-- ===== File integrity monitoring [Documented] =====
+       NOTE: the source snippet was cut off after the /bin,/sbin,/boot line;
+       the closing </syscheck> tag is restored here. In a real file the stock
+       <syscheck> section already exists - edit it instead of adding a second one. -->
+  <syscheck>
+    <disabled>no</disabled>
+    <!-- Seconds between full scans (stock default is 12 hours) -->
+    <frequency>30</frequency>
+    <scan_on_start>yes</scan_on_start>
+
+    <!-- Real-time monitoring of sensitive paths -->
+    <directories realtime="yes">/etc</directories>
+    <directories realtime="yes">/var/www</directories>
+    <directories realtime="yes">/home</directories>
+
+    <!-- Scheduled (non real-time) checks -->
+    <directories>/bin,/sbin,/boot</directories>
+  </syscheck>
+
+</ossec_config>

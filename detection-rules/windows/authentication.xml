@@ -1,0 +1,45 @@
+<!--
+  Windows authentication rules
+  Deploy to : /var/ossec/etc/rules/local_rules.xml  (merge) or as a separate file in /var/ossec/etc/rules/
+  Origin    : [Documented] rule XML recorded in the project documentation (whitespace normalized only).
+  Event src : Windows Security event log, eventchannel format (Event IDs 4624, 4625)
+-->
+<group name="local,windows,authentication,">
+
+  <!-- 100110 - Failed logon (Event ID 4625). Level 5. [Documented] -->
+  <rule id="100110" level="5">
+    <if_group>windows</if_group>
+    <field name="win.system.eventID">^4625$</field>
+    <description>Windows: Failed logon attempt</description>
+  </rule>
+
+  <!-- 100200 - Brute force: 5 failures for the same target user within 300 s. Level 8. [Documented, Validated]
+       The documentation shows two renderings of this rule with identical logic: a short one
+       (description only) and this one (field-interpolated description + groups). -->
+  <rule id="100200" level="8" frequency="5" timeframe="300">
+    <if_matched_sid>100110</if_matched_sid>
+    <same_field>win.eventdata.targetUserName</same_field>
+    <description>Windows: Brute force attempt detected - $(win.eventdata.targetUserName)</description>
+    <group>brute_force,authentication_failed,</group>
+  </rule>
+
+  <!-- 100100 - Successful logon (Event ID 4624). Level 3. [Documented] -->
+  <rule id="100100" level="3">
+    <if_group>windows</if_group>
+    <field name="win.system.eventID">^4624$</field>
+    <description>Windows: Successful logon</description>
+  </rule>
+
+  <!-- 100700 - Account compromise: successful logon correlated with a prior brute-force alert. Level 14. [Documented]
+       Reproduced exactly as recorded (if_matched_sid + if_sid + timeframe, no explicit frequency).
+       No alert from this rule is shown in the validation scenarios. Verify it loads and fires
+       with `wazuh-logtest` / `wazuh-analysisd -t`; it may need an explicit frequency attribute
+       on your Wazuh version. -->
+  <rule id="100700" level="14" timeframe="300">
+    <if_matched_sid>100200</if_matched_sid>
+    <if_sid>100100</if_sid>
+    <same_field>win.eventdata.targetUserName</same_field>
+    <description>ACCOUNT COMPROMISE</description>
+  </rule>
+
+</group>

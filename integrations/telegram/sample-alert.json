@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-01-01T12:00:00.000+0000",
+  "rule": {
+    "level": 8,
+    "description": "Windows: Brute force attempt detected - lab-test-user",
+    "id": "100200"
+  },
+  "agent": {
+    "id": "001",
+    "name": "DC01",
+    "ip": "203.0.113.10"
+  },
+  "data": {
+    "srcip": "203.0.113.50"
+  },
+  "location": "EventChannel"
+}

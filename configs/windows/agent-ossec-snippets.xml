@@ -1,0 +1,72 @@
+<!--
+  Wazuh agent (Windows: DC01 and WS01) - configuration excerpts
+  Target file : C:\Program Files (x86)\ossec-agent\ossec.conf   [path: standard Wazuh location]
+  Origin      : [Documented] eventchannel blocks and the syscheck excerpt
+                recorded in the project documentation (the original excerpt
+                contains "..." elisions, kept below as comments).
+  Usage       : Merge into the existing <ossec_config>; restart the agent
+                (Restart-Service -Name wazuh) afterwards.
+-->
+<ossec_config>
+
+  <!-- ===== Windows Event Log collection [Documented] ===== -->
+  <localfile>
+    <location>Security</location>
+    <log_format>eventchannel</log_format>
+  </localfile>
+
+  <localfile>
+    <location>System</location>
+    <log_format>eventchannel</log_format>
+  </localfile>
+
+  <localfile>
+    <location>Application</location>
+    <log_format>eventchannel</log_format>
+  </localfile>
+
+  <!-- ===== File integrity monitoring [Documented excerpt] ===== -->
+  <syscheck>
+    <disabled>no</disabled>
+
+    <!-- Seconds between scans (stock default is 12 hours) -->
+    <frequency>60</frequency>
+
+    <!-- Default files to be monitored -->
+    <directories recursion_level="0" restrict="regedit.exe$|system.ini$|win.ini$">%WINDIR%</directories>
+
+    <!-- Dedicated lab test directory (sanitized path; replace LAB_USER) -->
+    <directories realtime="yes">C:\Users\LAB_USER\Desktop\FIM-Test</directories>
+
+    <!-- User profiles: all checks, real time -->
+    <directories check_all="yes" realtime="yes">C:\Users</directories>
+
+    <!-- Active Directory database directory (relevant on the DC) -->
+    <directories realtime="yes">C:\Windows\NTDS</directories>
+
+    <!-- Selected system binaries (list as shown in the source figure) -->
+    <directories recursion_level="0" restrict="at.exe$|attrib.exe$|cacls.exe$|cmd.exe$|eventcreate.exe$|ftp.exe$|lsass.exe$|net.exe$|net1.exe$|netsh.exe$|reg.exe$|regedt32.exe|regsvr32.exe|runas.exe|sc.exe|schtasks.exe|sethc.exe|subst.exe$">%WINDIR%\SysNative</directories>
+
+    <!-- ... (elided in the source) ... -->
+
+    <!-- [Recommendation] The project text states C:\Windows\System32 is monitored,
+         but the excerpt elides that part. The stock Wazuh agent config contains an
+         equivalent entry; confirm it is present in your file, otherwise add:
+    <directories recursion_level="0" restrict=".exe$">%WINDIR%\System32</directories>
+    -->
+
+    <!-- Windows registry entries to monitor -->
+    <windows_registry>HKEY_LOCAL_MACHINE\Software\Classes\batfile</windows_registry>
+    <windows_registry>HKEY_LOCAL_MACHINE\Software\Classes\cmdfile</windows_registry>
+    <windows_registry>HKEY_LOCAL_MACHINE\Software\Classes\comfile</windows_registry>
+
+    <!-- ... (elided in the source) ... -->
+
+    <!-- Persistence keys, as shown in the source figure. The literal token "userid"
+         is kept as documented; HKEY_USERS keys are normally SID-based, so verify
+         in your lab which key the agent actually resolves. -->
+    <windows_registry arch="both">HKEY_USERS\userid\Software\Microsoft\Windows\CurrentVersion\Run</windows_registry>
+    <windows_registry arch="both">HKEY_USERS\userid\Software\Microsoft\Windows\CurrentVersion\RunOnce</windows_registry>
+  </syscheck>
+
+</ossec_config>

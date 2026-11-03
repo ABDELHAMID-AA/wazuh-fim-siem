@@ -1,0 +1,146 @@
+<!--
+  local_rules.documented.xml
+  Combined deployable file of every custom rule whose definition is recorded in the project documentation.
+  Deploy to: /var/ossec/etc/rules/local_rules.xml  (or a separate file under /var/ossec/etc/rules/)
+  Then validate and reload:
+    sudo /var/ossec/bin/wazuh-analysisd -t
+    sudo systemctl restart wazuh-manager
+  Rule 101100 is intentionally left disabled (parent rule 100900 not recorded).
+  Rule IDs referenced elsewhere but NOT recorded (not recreated here):
+    100111, 100900, 101002, 101200, 101201, 101300, 110100, 110101, 110102, 110153
+-->
+<!-- ===== from windows/authentication.xml ===== -->
+<group name="local,windows,authentication,">
+
+  <!-- 100110 - Failed logon (Event ID 4625). Level 5. [Documented] -->
+  <rule id="100110" level="5">
+    <if_group>windows</if_group>
+    <field name="win.system.eventID">^4625$</field>
+    <description>Windows: Failed logon attempt</description>
+  </rule>
+
+  <!-- 100200 - Brute force: 5 failures for the same target user within 300 s. Level 8. [Documented, Validated]
+       The documentation shows two renderings of this rule with identical logic: a short one
+       (description only) and this one (field-interpolated description + groups). -->
+  <rule id="100200" level="8" frequency="5" timeframe="300">
+    <if_matched_sid>100110</if_matched_sid>
+    <same_field>win.eventdata.targetUserName</same_field>
+    <description>Windows: Brute force attempt detected - $(win.eventdata.targetUserName)</description>
+    <group>brute_force,authentication_failed,</group>
+  </rule>
+
+  <!-- 100100 - Successful logon (Event ID 4624). Level 3. [Documented] -->
+  <rule id="100100" level="3">
+    <if_group>windows</if_group>
+    <field name="win.system.eventID">^4624$</field>
+    <description>Windows: Successful logon</description>
+  </rule>
+
+  <!-- 100700 - Account compromise: successful logon correlated with a prior brute-force alert. Level 14. [Documented]
+       Reproduced exactly as recorded (if_matched_sid + if_sid + timeframe, no explicit frequency).
+       No alert from this rule is shown in the validation scenarios. Verify it loads and fires
+       with `wazuh-logtest` / `wazuh-analysisd -t`; it may need an explicit frequency attribute
+       on your Wazuh version. -->
+  <rule id="100700" level="14" timeframe="300">
+    <if_matched_sid>100200</if_matched_sid>
+    <if_sid>100100</if_sid>
+    <same_field>win.eventdata.targetUserName</same_field>
+    <description>ACCOUNT COMPROMISE</description>
+  </rule>
+
+</group>
+
+<!-- ===== from windows/process-and-powershell.xml ===== -->
+<group name="local,windows,process,powershell,">
+
+  <!-- 120100 - PowerShell execution. Level 8. [Documented] -->
+  <rule id="120100" level="8">
+    <if_sid>61603</if_sid>
+    <match>powershell.exe</match>
+    <description>PowerShell execution detected</description>
+  </rule>
+
+  <!-- 120101 - PowerShell download activity (Invoke-WebRequest). Level 12. [Documented] -->
+  <rule id="120101" level="12">
+    <if_sid>120100</if_sid>
+    <match>Invoke-WebRequest</match>
+    <description>PowerShell download activity detected</description>
+  </rule>
+
+  <!-- 120102 - PowerShell spawning curl.exe for payload download. Level 12. [Documented] -->
+  <rule id="120102" level="12">
+    <if_sid>120100</if_sid>
+    <match>curl.exe</match>
+    <description>PowerShell spawned curl for payload download</description>
+  </rule>
+
+  <!-- 120103 - Suspicious executable launched (lab test binary name). Level 10. [Documented]
+       The match is a hard-coded file name used only for the lab test; it is a demonstration
+       of the technique, not a general-purpose detection. -->
+  <rule id="120103" level="10">
+    <if_sid>61603</if_sid>
+    <match>project.exe</match>
+    <description>Suspicious executable launched</description>
+  </rule>
+
+  <!--
+    101100 - Encoded PowerShell command. Level 12. [Documented in prose; NOT ACTIVE]
+    Disabled on purpose: its parent rule 100900 ("process creation monitoring") is
+    [Not recorded] in the project documentation. If a rule references a missing parent SID,
+    the Wazuh analysis engine refuses to start. Re-enable only after you define 100900
+    (or point if_sid at an existing process-creation rule) and test it.
+
+  <rule id="101100" level="12">
+    <if_sid>100900</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(-enc|-encodedcommand|-e\s+[A-Za-z0-9+/=]{20,})</field>
+    <description>Windows: Encoded PowerShell command detected</description>
+    <group>powershell,encoded_command,obfuscation,suspicious,</group>
+  </rule>
+  -->
+
+</group>
+
+<!-- ===== from active-directory/account-and-group-changes.xml ===== -->
+<group name="local,windows,active_directory,">
+
+  <!-- 110152 - AD user created (Event ID 4720). Level 10. [Documented, Validated] -->
+  <rule id="110152" level="10">
+    <if_group>windows</if_group>
+    <field name="win.system.eventID">^4720$</field>
+    <description>User created</description>
+  </rule>
+
+  <!-- 102020 - Member added to a security group (4728 / 4732 / 4756). Level 12. [Documented, Validated]
+       Note: the event IDs match membership additions to ANY security-enabled group of the
+       respective scope, not only privileged ones; the description is therefore broader than
+       the logic. Consider filtering on win.eventdata.targetUserName (group name) for
+       privileged groups in your own environment. -->
+  <rule id="102020" level="12">
+    <if_group>windows</if_group>
+    <field name="win.system.eventID">^4728$|^4732$|^4756$</field>
+    <description>AD: User added to privileged group</description>
+  </rule>
+
+</group>
+
+<!-- ===== from fim/fim-correlation.xml ===== -->
+<group name="local,syscheck,ransomware,">
+
+  <!-- 120104 - Any FIM modification event. Level 6. [Documented]
+       Matches the whole stock "syscheck" group, on every agent and path. -->
+  <rule id="120104" level="6">
+    <if_group>syscheck</if_group>
+    <description>FIM file modification detected</description>
+  </rule>
+
+  <!-- 120105 - 30 FIM events within 60 s. Level 14. [Documented, Validated]
+       Not scoped per agent or per directory: bulk legitimate changes (package upgrades,
+       backups) can also trigger it. Tune frequency/timeframe and add same_agent or path
+       filters for your environment. -->
+  <rule id="120105" level="14" frequency="30" timeframe="60">
+    <if_matched_sid>120104</if_matched_sid>
+    <description>Possible ransomware activity - multiple file modifications detected in a short time</description>
+  </rule>
+
+</group>
+

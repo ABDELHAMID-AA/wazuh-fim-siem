@@ -1,0 +1,24 @@
+<!--
+  FIM correlation rules (ransomware-like behavior)
+  Origin    : [Documented] rule XML recorded in the project documentation (whitespace normalized only).
+  Event src : Wazuh syscheck (FIM) events, all agents
+-->
+<group name="local,syscheck,ransomware,">
+
+  <!-- 120104 - Any FIM modification event. Level 6. [Documented]
+       Matches the whole stock "syscheck" group, on every agent and path. -->
+  <rule id="120104" level="6">
+    <if_group>syscheck</if_group>
+    <description>FIM file modification detected</description>
+  </rule>
+
+  <!-- 120105 - 30 FIM events within 60 s. Level 14. [Documented, Validated]
+       Not scoped per agent or per directory: bulk legitimate changes (package upgrades,
+       backups) can also trigger it. Tune frequency/timeframe and add same_agent or path
+       filters for your environment. -->
+  <rule id="120105" level="14" frequency="30" timeframe="60">
+    <if_matched_sid>120104</if_matched_sid>
+    <description>Possible ransomware activity - multiple file modifications detected in a short time</description>
+  </rule>
+
+</group>

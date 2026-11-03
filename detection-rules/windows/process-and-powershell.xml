@@ -1,0 +1,58 @@
+<!--
+  Windows process execution / PowerShell rules
+  Origin    : [Documented] rule XML recorded in the project documentation (whitespace normalized only).
+  Event src : Windows process-creation telemetry via parent rule 61603 (a stock Wazuh rule).
+
+  [Recommendation] Verify the parent rule: 61603 is, to the best of our knowledge, the stock
+  Sysmon "process created" rule, while the project documentation lists Sysmon as future work and
+  only mentions Event ID 4688. Confirm on your Wazuh version (wazuh-logtest) that these rules
+  actually fire for your telemetry source before relying on them.
+-->
+<group name="local,windows,process,powershell,">
+
+  <!-- 120100 - PowerShell execution. Level 8. [Documented] -->
+  <rule id="120100" level="8">
+    <if_sid>61603</if_sid>
+    <match>powershell.exe</match>
+    <description>PowerShell execution detected</description>
+  </rule>
+
+  <!-- 120101 - PowerShell download activity (Invoke-WebRequest). Level 12. [Documented] -->
+  <rule id="120101" level="12">
+    <if_sid>120100</if_sid>
+    <match>Invoke-WebRequest</match>
+    <description>PowerShell download activity detected</description>
+  </rule>
+
+  <!-- 120102 - PowerShell spawning curl.exe for payload download. Level 12. [Documented] -->
+  <rule id="120102" level="12">
+    <if_sid>120100</if_sid>
+    <match>curl.exe</match>
+    <description>PowerShell spawned curl for payload download</description>
+  </rule>
+
+  <!-- 120103 - Suspicious executable launched (lab test binary name). Level 10. [Documented]
+       The match is a hard-coded file name used only for the lab test; it is a demonstration
+       of the technique, not a general-purpose detection. -->
+  <rule id="120103" level="10">
+    <if_sid>61603</if_sid>
+    <match>project.exe</match>
+    <description>Suspicious executable launched</description>
+  </rule>
+
+  <!--
+    101100 - Encoded PowerShell command. Level 12. [Documented in prose; NOT ACTIVE]
+    Disabled on purpose: its parent rule 100900 ("process creation monitoring") is
+    [Not recorded] in the project documentation. If a rule references a missing parent SID,
+    the Wazuh analysis engine refuses to start. Re-enable only after you define 100900
+    (or point if_sid at an existing process-creation rule) and test it.
+
+  <rule id="101100" level="12">
+    <if_sid>100900</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(-enc|-encodedcommand|-e\s+[A-Za-z0-9+/=]{20,})</field>
+    <description>Windows: Encoded PowerShell command detected</description>
+    <group>powershell,encoded_command,obfuscation,suspicious,</group>
+  </rule>
+  -->
+
+</group>
